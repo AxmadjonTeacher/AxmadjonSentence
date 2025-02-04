@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Language Structure Vault</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f0f8ff;
+        }
+        .entry-box {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            position: relative;
+        }
+        .structure-tag {
+            background: #ffeb3b;
+            padding: 3px 6px;
+            border-radius: 3px;
+            font-size: 0.9em;
+            display: inline-block;
+            margin-bottom: 10px;
+        }
+        .vocab-list {
+            color: #2196F3;
+            margin: 15px 0;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        #sentenceInput {
+            width: 100%;
+            height: 60px;
+            margin: 10px 0;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+        }
+        #saveBtn {
+            background: #2ba327;
+            color: white;
+            width: 100%;
+            font-size: 1.1em;
+        }
+        .delete-btn {
+            background: #f44336;
+            color: white;
+            padding: 8px 16px;
+            margin-top: 10px;
+        }
+        .filter-section {
+            margin: 20px 0;
+            display: flex;
+            gap: 10px;
+        }
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .input-group input {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+        }
+        #searchInput {
+            flex: 2;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+        }
+        #structureFilter {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            background: white;
+        }
+        .entry-box small {
+            display: block;
+            margin-top: 10px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <h1>📚 Language Structure Vault</h1>
+    
+    <div class="entry-box">
+        <h3>Add New Sentence</h3>
+        <textarea id="sentenceInput" placeholder="Paste your complex sentence here..."></textarea>
+        <div class="input-group">
+            <input type="text" id="structureInput" placeholder="Sentence structure (e.g., Inversion)">
+            <input type="text" id="vocabInput" placeholder="Key vocabulary (comma-separated)">
+        </div>
+        <button id="saveBtn" onclick="saveEntry()">💾 Save Sentence</button>
+    </div>
+
+    <div class="filter-section">
+        <input type="text" id="searchInput" placeholder="Search sentences...">
+        <select id="structureFilter">
+            <option value="">All Structures</option>
+        </select>
+    </div>
+
+    <div id="entriesContainer"></div>
+
+    <script>
+        let entries = JSON.parse(localStorage.getItem('languageEntries')) || [];
+
+        function saveEntry() {
+            const sentence = document.getElementById('sentenceInput').value;
+            const structure = document.getElementById('structureInput').value;
+            const vocabulary = document.getElementById('vocabInput').value.split(',').map(word => word.trim());
+            
+            let highlightedSentence = sentence;
+            vocabulary.forEach(word => {
+                const regex = new RegExp(`\\b${word}\\b`, 'gi');
+                highlightedSentence = highlightedSentence.replace(regex, `<b>${word}</b>`);
+            });
+
+            const entry = {
+                sentence: highlightedSentence,
+                structure: structure,
+                vocabulary: vocabulary,
+                date: new Date().toLocaleDateString()
+            };
+
+            entries.push(entry);
+            localStorage.setItem('languageEntries', JSON.stringify(entries));
+            displayEntries();
+            clearForm();
+        }
+
+        function clearForm() {
+            document.getElementById('sentenceInput').value = '';
+            document.getElementById('structureInput').value = '';
+            document.getElementById('vocabInput').value = '';
+        }
+
+        function displayEntries(filter = '') {
+            const container = document.getElementById('entriesContainer');
+            container.innerHTML = '';
+            
+            entries.filter(entry => 
+                entry.sentence.toLowerCase().includes(filter.toLowerCase()) ||
+                entry.structure.toLowerCase().includes(filter.toLowerCase())
+            ).forEach((entry, index) => {
+                container.innerHTML += `
+                    <div class="entry-box">
+                        <div class="structure-tag">${entry.structure}</div>
+                        <p>${entry.sentence}</p>
+                        <div class="vocab-list">
+                            🎯 Vocabulary: ${entry.vocabulary.join(', ')}
+                        </div>
+                        <small>Added: ${entry.date}</small>
+                        <button class="delete-btn" onclick="deleteEntry(${index})">🗑️ Delete</button>
+                    </div>
+                `;
+            });
+            updateStructureFilter();
+        }
+
+        function deleteEntry(index) {
+            entries.splice(index, 1);
+            localStorage.setItem('languageEntries', JSON.stringify(entries));
+            displayEntries();
+        }
+
+        function updateStructureFilter() {
+            const structures = [...new Set(entries.map(entry => entry.structure))];
+            const filter = document.getElementById('structureFilter');
+            filter.innerHTML = '<option value="">All Structures</option>';
+            structures.forEach(structure => {
+                filter.innerHTML += `<option>${structure}</option>`;
+            });
+        }
+
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            displayEntries(e.target.value);
+        });
+
+        document.getElementById('structureFilter').addEventListener('change', (e) => {
+            displayEntries(e.target.value);
+        });
+
+        displayEntries();
+    </script>
+</body>
+</html>
